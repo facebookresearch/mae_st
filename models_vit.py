@@ -41,7 +41,6 @@ class VisionTransformer(nn.Module):
         drop_path_rate=0.0,
         norm_layer=nn.LayerNorm,
         dropout=0.5,
-        rel_pos_init_std=0.02,
         sep_pos_embed=False,
         cls_embed=False,
         **kwargs,

@@ -16,7 +16,6 @@ import torch
 import torch.nn as nn
 from mae_st.util import video_vit
 from mae_st.util.logging import master_print as print
-from mae_st.util.pos_embed import get_3d_sincos_pos_embed
 
 
 class MaskedAutoencoderViT(nn.Module):
@@ -39,9 +38,7 @@ class MaskedAutoencoderViT(nn.Module):
         num_frames=16,
         t_patch_size=4,
         patch_embed=video_vit.PatchEmbed,
-        mask_type=False,
         no_qkv_bias=False,
-        learnable_pos_embed=False,
         sep_pos_embed=False,
         trunc_init=False,
         cls_embed=False,
@@ -66,8 +63,6 @@ class MaskedAutoencoderViT(nn.Module):
         num_patches = self.patch_embed.num_patches
         input_size = self.patch_embed.input_size
         self.input_size = input_size
-        self.mask_type = mask_type
-        self.learnable_pos_embed = learnable_pos_embed
 
         if self.cls_embed:
             self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
@@ -90,7 +85,6 @@ class MaskedAutoencoderViT(nn.Module):
 
             self.pos_embed = nn.Parameter(
                 torch.zeros(1, _num_patches, embed_dim),
-                requires_grad=learnable_pos_embed,
             )
 
         encoder_block = video_vit.Block
@@ -132,7 +126,6 @@ class MaskedAutoencoderViT(nn.Module):
 
             self.decoder_pos_embed = nn.Parameter(
                 torch.zeros(1, _num_patches, decoder_embed_dim),
-                requires_grad=learnable_pos_embed,
             )
 
         decoder_block = video_vit.Block
@@ -177,30 +170,8 @@ class MaskedAutoencoderViT(nn.Module):
                 torch.nn.init.trunc_normal_(self.pos_embed_class, std=0.02)
                 torch.nn.init.trunc_normal_(self.decoder_pos_embed_class, std=0.02)
         else:
-            if self.learnable_pos_embed:
-                torch.nn.init.trunc_normal_(self.pos_embed, std=0.02)
-                torch.nn.init.trunc_normal_(self.decoder_pos_embed, std=0.02)
-            else:
-                pos_embed = get_3d_sincos_pos_embed(
-                    self.pos_embed.shape[-1],
-                    self.patch_embed.grid_size,
-                    self.patch_embed.t_grid_size,
-                    cls_token=self.cls_embed,
-                )
-                self.pos_embed.data.copy_(
-                    torch.from_numpy(pos_embed).float().unsqueeze(0)
-                )
-
-                decoder_pos_embed = get_3d_sincos_pos_embed(
-                    self.decoder_pos_embed.shape[-1],
-                    self.patch_embed.grid_size,
-                    self.patch_embed.t_grid_size,
-                    cls_token=self.cls_embed,
-                )
-                self.decoder_pos_embed.data.copy_(
-                    torch.from_numpy(decoder_pos_embed).float().unsqueeze(0)
-                )
-
+            torch.nn.init.trunc_normal_(self.pos_embed, std=0.02)
+            torch.nn.init.trunc_normal_(self.decoder_pos_embed, std=0.02)
         w = self.patch_embed.proj.weight.data
         if self.trunc_init:
             torch.nn.init.trunc_normal_(w)
@@ -290,31 +261,11 @@ class MaskedAutoencoderViT(nn.Module):
         x = self.patch_embed(x)
         N, T, L, C = x.shape
 
-        if self.mask_type == "st":
-            x = x.reshape(N, T * L, C)
-        elif self.mask_type == "t":
-            x = x.reshape(N * T, L, C)
-        elif self.mask_type == "tube":
-            x = torch.einsum("ntlc->nltc", x.reshape([N, T, L, C])).reshape(
-                [N, L, T * C]
-            )
-        else:
-            raise NotImplementedError(f"not supported mask type {self.mask_type}")
+        x = x.reshape(N, T * L, C)
 
         # masking: length -> length * mask_ratio
         x, mask, ids_restore, ids_keep = self.random_masking(x, mask_ratio)
-        if self.mask_type in ["st", "t"]:
-            x = x.view(N, -1, C)
-        elif self.mask_type == "tube":
-            _, L_new, _ = x.shape
-            x = x.reshape([N, L_new, T, C])
-            x = torch.einsum("nltc->ntlc", x)
-            x = x.reshape([N, T * L_new, C])
-            # N 1 L C -> N T L C
-            mask = mask.repeat(1, T, 1, 1)
-        else:
-            raise NotImplementedError(f"not supported mask type {self.mask_type}")
-
+        x = x.view(N, -1, C)
         # append cls token
         if self.cls_embed:
             cls_token = self.cls_token
@@ -390,28 +341,11 @@ class MaskedAutoencoderViT(nn.Module):
         # append mask tokens to sequence
         mask_tokens = self.mask_token.repeat(N, T * H * W + 0 - x.shape[1], 1)
         x_ = torch.cat([x[:, :, :], mask_tokens], dim=1)  # no cls token
-        if self.mask_type == "st":
-            x_ = x_.view([N, T * H * W, C])
-        elif self.mask_type == "t":
-            x_ = x_.view([N * T, H * W, C])
-        elif self.mask_type == "tube":
-            x_ = x_.reshape([N, T, H * W, C])
-            x_ = torch.einsum("ntlc->nltc", x_)
-            x_ = x_.reshape([N, H * W, T * C])
-        else:
-            raise NotImplementedError(f"not supported mask type {self.mask_type}")
+        x_ = x_.view([N, T * H * W, C])
         x_ = torch.gather(
             x_, dim=1, index=ids_restore.unsqueeze(-1).repeat(1, 1, x_.shape[2])
         )  # unshuffle
-        if self.mask_type in ["st", "t"]:
-            x = x_.view([N, T * H * W, C])
-        elif self.mask_type == "tube":
-            x = x_.reshape([N, H * W, T, C])
-            x = torch.einsum("nltc->ntlc", x)
-            x = x.reshape([N, T * H * W, C])
-        else:
-            raise NotImplementedError(f"not supported mask type {self.mask_type}")
-
+        x = x_.view([N, T * H * W, C])
         # append cls token
         if self.cls_embed:
             decoder_cls_token = self.decoder_cls_token
@@ -466,7 +400,7 @@ class MaskedAutoencoderViT(nn.Module):
 
         return x
 
-    def forward_loss(self, imgs, pred, mask, visualize):
+    def forward_loss(self, imgs, pred, mask):
         """
         imgs: [N, 3, T, H, W]
         pred: [N, t*h*w, u*p*p*3]
@@ -484,8 +418,6 @@ class MaskedAutoencoderViT(nn.Module):
             .to(imgs.device),
         )
         target = self.patchify(_imgs)
-        if visualize:
-            self.target = target
         if self.norm_pix_loss:
             mean = target.mean(dim=-1, keepdim=True)
             var = target.var(dim=-1, keepdim=True)
@@ -498,22 +430,11 @@ class MaskedAutoencoderViT(nn.Module):
         loss = (loss * mask).sum() / mask.sum()  # mean loss on removed patches
         return loss
 
-    def forward(self, imgs, mask_ratio=0.75, visualize=False):
+    def forward(self, imgs, mask_ratio=0.75):
         latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio)
         pred = self.forward_decoder(latent, ids_restore)  # [N, L, p*p*3]
-        loss = self.forward_loss(imgs, pred, mask, visualize)
-
-        if visualize:
-            N, T, H, W, p, u, t, h, w = self.patch_info
-            reconstruct = self.unpatchify(pred)
-            masked = self.unpatchify(self.target * (1 - mask.reshape(N, t * h * w, 1)))
-            comparison = torch.stack(
-                [imgs, masked, reconstruct],
-                dim=1,
-            )
-            return loss, pred, mask, comparison
-        else:
-            return loss, pred, mask, torch.Tensor()
+        loss = self.forward_loss(imgs, pred, mask)
+        return loss, pred, mask, torch.Tensor()
 
 
 def mae_vit_base_patch16(**kwargs):

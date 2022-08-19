@@ -59,22 +59,8 @@ def get_args_parser():
     parser.add_argument("--input_size", default=224, type=int, help="images input size")
 
     parser.add_argument(
-        "--mask_schedule",
-        default="const",
-        type=str,
-        help="const or cos",
-    )
-
-    parser.add_argument(
         "--mask_ratio",
         default=0.75,
-        type=float,
-        help="Masking ratio (percentage of removed patches).",
-    )
-
-    parser.add_argument(
-        "--mask_ratio_end",
-        default=0.99,
         type=float,
         help="Masking ratio (percentage of removed patches).",
     )
@@ -173,33 +159,12 @@ def get_args_parser():
     parser.add_argument("--decoder_embed_dim", default=512, type=int)
     parser.add_argument("--decoder_depth", default=8, type=int)
     parser.add_argument("--decoder_num_heads", default=16, type=int)
-    parser.add_argument("--t_patch_size", default=4, type=int)
+    parser.add_argument("--t_patch_size", default=2, type=int)
     parser.add_argument("--num_frames", default=16, type=int)
     parser.add_argument("--checkpoint_period", default=1, type=int)
     parser.add_argument("--sampling_rate", default=4, type=int)
     parser.add_argument("--distributed", action="store_true")
     parser.add_argument("--repeat_aug", default=4, type=int)
-
-    # Options include: s, st, tube
-    parser.add_argument(
-        "--mask_type",
-        default="s",
-        type=str,
-    )
-
-    # Dataset parameters
-    parser.add_argument(
-        "--encoder_attn",
-        default="AttentionOrg",
-        type=str,
-    )
-
-    # Dataset parameters
-    parser.add_argument(
-        "--decoder_attn",
-        default="AttentionOrg",
-        type=str,
-    )
     parser.add_argument(
         "--clip_grad",
         type=float,
@@ -208,8 +173,8 @@ def get_args_parser():
     parser.add_argument("--no_qkv_bias", action="store_true")
     parser.add_argument("--bias_wd", action="store_true")
     parser.add_argument("--num_checkpoint_del", default=20, type=int)
-    parser.add_argument("--learnable_pos_embed", action="store_true")
     parser.add_argument("--sep_pos_embed", action="store_true")
+    parser.set_defaults(sep_pos_embed=True)
     parser.add_argument(
         "--trunc_init",
         action="store_true",
@@ -218,6 +183,7 @@ def get_args_parser():
         "--fp32",
         action="store_true",
     )
+    parser.set_defaults(fp32=True)
     parser.add_argument(
         "--jitter_scales_relative",
         default=[0.5, 1.0],
@@ -242,6 +208,7 @@ def get_args_parser():
         default=8,
     )
     parser.add_argument("--cls_embed", action="store_true")
+    parser.set_defaults(cls_embed=True)
     return parser
 
 

@@ -480,34 +480,6 @@ def add_weight_decay(model, weight_decay=1e-5, skip_list=(), bias_wd=False):
     ]
 
 
-def get_mask_ratio(args, cur_epoch=None):
-    if args.mask_schedule == "const":
-        return args.mask_ratio
-    elif args.mask_schedule == "cos":
-        mask_ratio_start = args.mask_ratio
-        mask_ratio_end = args.mask_ratio_end
-        num_epoch = args.epochs
-        return (
-            mask_ratio_end
-            + (mask_ratio_start - mask_ratio_end)
-            * (math.cos(math.pi * cur_epoch / num_epoch) + 1.0)
-            * 0.5
-        )
-    elif args.mask_schedule == "rand":
-        mask_ratio_start = args.mask_ratio
-        mask_ratio_end = args.mask_ratio_end
-        r = (
-            torch.Tensor(1)
-            .cuda()
-            .uniform_(
-                mask_ratio_start,
-                mask_ratio_end,
-            )
-        )
-        r = all_gather([r])[0][0]
-        return r
-
-
 def inflate(model_2d, model_3d):
     state_dict_inflated = OrderedDict()
     for k, v2d in model_2d.items():

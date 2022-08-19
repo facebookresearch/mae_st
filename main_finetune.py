@@ -291,16 +291,13 @@ def get_args_parser():
     parser.add_argument("--repeat_aug", default=1, type=int)
     parser.add_argument("--cpu_mix", action="store_true")
     parser.add_argument("--no_qkv_bias", action="store_true")
-    parser.add_argument(
-        "--rel_pos_init_std",
-        type=float,
-        default=0.02,
-    )
     parser.add_argument("--sep_pos_embed", action="store_true")
+    parser.set_defaults(sep_pos_embed=True)
     parser.add_argument(
         "--fp32",
         action="store_true",
     )
+    parser.set_defaults(fp32=True)
     parser.add_argument(
         "--jitter_scales_relative",
         default=[0.08, 1.0],
@@ -314,6 +311,7 @@ def get_args_parser():
         nargs="+",
     )
     parser.add_argument("--cls_embed", action="store_true")
+    parser.set_defaults(cls_embed=True)
     return parser
 
 

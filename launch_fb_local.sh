@@ -53,7 +53,6 @@ else
     --model vit_large_patch16 \
     --t_patch_size 2 --num_frames 16 \
     --rand_aug \
-    --rel_pos_init_std 1.0 \
     --sep_pos_embed \
     --fp32 \
     --cls_embed \

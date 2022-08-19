@@ -15,7 +15,6 @@ import mae_st.util.lr_sched as lr_sched
 import mae_st.util.misc as misc
 import torch
 from iopath.common.file_io import g_pathmgr as pathmgr
-from mae_st.util.misc import get_mask_ratio
 
 
 def train_one_epoch(
@@ -27,7 +26,6 @@ def train_one_epoch(
     loss_scaler,
     log_writer=None,
     args=None,
-    visualize=False,
     fp32=False,
 ):
     model.train(True)
@@ -69,14 +67,10 @@ def train_one_epoch(
             b, r, c, t, h, w = samples.shape
             samples = samples.reshape(b * r, c, t, h, w)
 
-        visualize_freq = 50
-        mask_ratio = get_mask_ratio(args, epoch)
         with torch.cuda.amp.autocast(enabled=not fp32):
             loss, _, _, vis = model(
                 samples,
-                mask_ratio=mask_ratio,
-                # visualize=visualize and data_iter_step % visualize_freq == 0,
-                visualize=False,
+                mask_ratio=args.mask_ratio,
             )
 
         loss_value = loss.item()
@@ -109,7 +103,7 @@ def train_one_epoch(
         metric_logger.update(cpu_mem=misc.cpu_mem_usage()[0])
         metric_logger.update(cpu_mem_all=misc.cpu_mem_usage()[1])
         metric_logger.update(gpu_mem=misc.gpu_mem_usage())
-        metric_logger.update(mask_ratio=mask_ratio)
+        metric_logger.update(mask_ratio=args.mask_ratio)
 
         lr = optimizer.param_groups[0]["lr"]
         metric_logger.update(lr=lr)
