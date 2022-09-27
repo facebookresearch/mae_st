@@ -33,7 +33,7 @@ Another implementation that supports AVA and SSv2 downstream evaluation is avail
 
 Visualization of MAE output with 95% (left) and 98% (right) mask rate on the same video.
 <div align="center">
-  <img src="mr-95-demo-vid-0.gif" width="500px"/> <img src="demo/mr-98-demo-vid.gif" width="500px"/>
+  <img src="mr-95-demo-vid.gif" width="500px"/> <img src="demo/mr-98-demo-vid.gif" width="500px"/>
 </div>
 
 Run our interactive visualization demo using [Colab notebook](TO_BE_ADD) (no GPU needed):
