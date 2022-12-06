@@ -215,14 +215,6 @@ def get_args_parser():
         dest="global_pool",
         help="Use class token instead of global pool for classification",
     )
-
-    # Dataset parameters
-    parser.add_argument(
-        "--data_path",
-        default="/datasets01/imagenet_full_size/061417/",
-        type=str,
-        help="dataset path",
-    )
     parser.add_argument(
         "--num_classes",
         default=400,
