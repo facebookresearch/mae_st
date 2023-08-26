@@ -92,7 +92,7 @@ def get_map(preds, labels):
     return mean_ap
 
 
-class TestMeter(object):
+class TestMeter:
     """
     Perform the multi-view ensemble for testing: each video with an unique index
     will be sampled with multiple clips, and the predictions of the clips will
