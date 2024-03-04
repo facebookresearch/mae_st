@@ -517,3 +517,16 @@ class MAE(MaskedAutoencoderViT, PyTorchModelHubMixin):
                             pred_t_dim=pred_t_dim,
                             norm_layer=partial(nn.LayerNorm, eps=1e-6), 
                             patch_embed=video_vit.PatchEmbed)
+        
+# define model
+model = MAE(patch_size=16,
+            embed_dim=768,
+            depth=12,
+            num_heads=12,
+            mlp_ratio=4)
+
+# push to hub
+model.push_to_hub("facebook/mae_vit_base_patch16")
+
+# reload
+model = MAE.from_pretrained("facebook/mae_vit_base_patch16")
