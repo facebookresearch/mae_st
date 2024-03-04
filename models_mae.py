@@ -18,6 +18,9 @@ from mae_st.util import video_vit
 from mae_st.util.logging import master_print as print
 
 
+from huggingface_hub import PyTorchModelHubMixin
+
+
 class MaskedAutoencoderViT(nn.Module):
     """Masked Autoencoder with VisionTransformer backbone"""
 
@@ -472,3 +475,45 @@ def mae_vit_huge_patch14(**kwargs):
         **kwargs,
     )
     return model
+
+
+class MAE(MaskedAutoencoderViT, PyTorchModelHubMixin):
+    def __init__(self, img_size=224,
+                        patch_size=16,
+                        in_chans=3,
+                        embed_dim=1024,
+                        depth=24,
+                        num_heads=16,
+                        decoder_embed_dim=512,
+                        decoder_depth=8,
+                        decoder_num_heads=16,
+                        mlp_ratio=4.0,
+                        norm_pix_loss=False,
+                        num_frames=16,
+                        t_patch_size=4,
+                        no_qkv_bias=False,
+                        sep_pos_embed=False,
+                        trunc_init=False,
+                        cls_embed=False,
+                        pred_t_dim=8,
+    ):
+        super().__init__(img_size=img_size,
+                            patch_size=patch_size,
+                            in_chans=in_chans,
+                            embed_dim=embed_dim,
+                            depth=depth,
+                            num_heads=num_heads,
+                            decoder_embed_dim=decoder_embed_dim,
+                            decoder_depth=decoder_depth,
+                            decoder_num_heads=decoder_num_heads,
+                            mlp_ratio=mlp_ratio,
+                            norm_pix_loss=norm_pix_loss,
+                            num_frames=num_frames,
+                            t_patch_size=t_patch_size,
+                            no_qkv_bias=no_qkv_bias,
+                            sep_pos_embed=sep_pos_embed,
+                            trunc_init=trunc_init,
+                            cls_embed=cls_embed,
+                            pred_t_dim=pred_t_dim,
+                            norm_layer=partial(nn.LayerNorm, eps=1e-6), 
+                            patch_embed=video_vit.PatchEmbed)
