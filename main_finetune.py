@@ -137,13 +137,15 @@ def get_args_parser():
         metavar="PCT",
         help="Color jitter factor (enabled only when not using Auto/RandAug)",
     )
-    parser.add_argument(
-        "--aa",
-        type=str,
-        default="rand-m7-mstd0.5-inc1",
-        metavar="NAME",
-        help='Use AutoAugment policy. "v0" or "original". " + "(default: rand-m9-mstd0.5-inc1)',
-    ),
+    (
+        parser.add_argument(
+            "--aa",
+            type=str,
+            default="rand-m7-mstd0.5-inc1",
+            metavar="NAME",
+            help='Use AutoAugment policy. "v0" or "original". " + "(default: rand-m9-mstd0.5-inc1)',
+        ),
+    )
     parser.add_argument(
         "--smoothing", type=float, default=0.1, help="Label smoothing (default: 0.1)"
     )
